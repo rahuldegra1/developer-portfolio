@@ -27,6 +27,6 @@ Python · pandas · NumPy · scikit-learn · Flask · FastAPI · SQL · PyTorch 
 
 ## Current focus
 
-I'm improving my software engineering practices through clearer documentation, safer configuration, and better testing while continuing to build and refine projects.
+Currently open for freelance projects, API integrations, and automation work. Focus: clean code, fast endpoints, and reliable deployments.
 
 [Browse all repositories](https://github.com/rahuldegra1?tab=repositories)
