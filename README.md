@@ -1,6 +1,6 @@
 # Hi, I'm Rahul
 
-I'm a Python developer learning by building practical projects in data science, machine learning, web development, and local AI.
+Python developer specializing in backend APIs (FastAPI/Flask), database integrations, and practical machine learning solutions.
 
 ## Featured projects
 
