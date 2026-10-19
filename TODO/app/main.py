@@ -3,7 +3,7 @@ from app.database import engine, Base
 from app.routers.leads import router as leads_router
 
 # Ensure tables are built
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Production Lead Ingestion Microservice",
