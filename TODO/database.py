@@ -1,5 +1,6 @@
 from pathlib import Path
-from sqlalchemy import create_engine, Column, Integer, String
+
+from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE_DIR = Path(__file__).resolve().parent

@@ -33,6 +33,7 @@ def db_session():
 @pytest.fixture(scope="function")
 def client(db_session):
     """Overrides the get_db dependency to point to the isolated in-memory session."""
+
     def override_get_db():
         try:
             yield db_session

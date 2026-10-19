@@ -1,16 +1,15 @@
-from typing import List, Optional
-from fastapi import FastAPI, Depends, Query, status, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
-from database import init_db, get_db, LeadDB
-from day4_crud import LeadCreate, LeadUpdate, LeadResponse
+from database import LeadDB, get_db, init_db
+from day4_crud import LeadCreate, LeadResponse
 
 app = FastAPI(
     title="Search & Paginated Lead API",
     description="Advanced querying, pagination, and multi-field filtering with FastAPI and SQLAlchemy.",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 init_db()
@@ -21,7 +20,7 @@ class PaginatedLeadResponse(BaseModel):
     total_count: int
     skip: int
     limit: int
-    data: List[LeadResponse]
+    data: list[LeadResponse]
 
 
 # ---------------------------------------------------------------------------
@@ -29,12 +28,24 @@ class PaginatedLeadResponse(BaseModel):
 # ---------------------------------------------------------------------------
 @app.get("/leads", response_model=PaginatedLeadResponse, status_code=status.HTTP_200_OK)
 def list_leads_filtered(
-    skip: int = Query(default=0, ge=0, description="Number of records to skip (offset)"),
-    limit: int = Query(default=10, ge=1, le=100, description="Max records to return per page"),
-    min_budget: Optional[int] = Query(default=None, ge=0, description="Filter leads with budget >= min_budget"),
-    max_budget: Optional[int] = Query(default=None, ge=0, description="Filter leads with budget <= max_budget"),
-    search: Optional[str] = Query(default=None, min_length=2, description="Case-insensitive search across name and email"),
-    db: Session = Depends(get_db)
+    skip: int = Query(
+        default=0, ge=0, description="Number of records to skip (offset)"
+    ),
+    limit: int = Query(
+        default=10, ge=1, le=100, description="Max records to return per page"
+    ),
+    min_budget: int | None = Query(
+        default=None, ge=0, description="Filter leads with budget >= min_budget"
+    ),
+    max_budget: int | None = Query(
+        default=None, ge=0, description="Filter leads with budget <= max_budget"
+    ),
+    search: str | None = Query(
+        default=None,
+        min_length=2,
+        description="Case-insensitive search across name and email",
+    ),
+    db: Session = Depends(get_db),
 ):
     query = db.query(LeadDB)
 
@@ -50,7 +61,7 @@ def list_leads_filtered(
         query = query.filter(
             or_(
                 LeadDB.full_name.ilike(search_pattern),
-                LeadDB.email.ilike(search_pattern)
+                LeadDB.email.ilike(search_pattern),
             )
         )
 
@@ -60,12 +71,7 @@ def list_leads_filtered(
     # 4. Apply offset, limit, and sorting
     leads = query.order_by(LeadDB.budget_inr.desc()).offset(skip).limit(limit).all()
 
-    return {
-        "total_count": total_matching,
-        "skip": skip,
-        "limit": limit,
-        "data": leads
-    }
+    return {"total_count": total_matching, "skip": skip, "limit": limit, "data": leads}
 
 
 # Include existing CRUD endpoints for completeness
@@ -78,7 +84,9 @@ def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
     return new_lead
 
 
-@app.get("/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK)
+@app.get(
+    "/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK
+)
 def get_lead(lead_id: int, db: Session = Depends(get_db)):
     lead = db.query(LeadDB).filter(LeadDB.id == lead_id).first()
     if not lead:

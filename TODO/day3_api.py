@@ -1,14 +1,13 @@
-from fastapi import FastAPI, Depends, status, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
-from typing import List
 
-from database import init_db, get_db, LeadDB
+from database import LeadDB, get_db, init_db
 
 app = FastAPI(
     title="Persistent Lead Ingestion API",
     description="Pydantic v2 validation paired with SQLAlchemy & SQLite persistence.",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Initialize database tables on server startup
@@ -82,19 +81,21 @@ def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
 
 
 # 4. Read All Persisted Leads
-@app.get("/leads", response_model=List[LeadResponse], status_code=status.HTTP_200_OK)
+@app.get("/leads", response_model=list[LeadResponse], status_code=status.HTTP_200_OK)
 def list_leads(db: Session = Depends(get_db)):
     leads = db.query(LeadDB).all()
     return leads
 
 
 # 5. Read a Single Lead by ID
-@app.get("/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK)
+@app.get(
+    "/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK
+)
 def get_lead(lead_id: int, db: Session = Depends(get_db)):
     lead = db.query(LeadDB).filter(LeadDB.id == lead_id).first()
     if not lead:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Lead with ID {lead_id} does not exist"
+            detail=f"Lead with ID {lead_id} does not exist",
         )
     return lead

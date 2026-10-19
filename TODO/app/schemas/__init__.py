@@ -1,15 +1,15 @@
 from app.schemas.lead import (
     LeadBase,
     LeadCreate,
-    LeadUpdate,
     LeadResponse,
+    LeadUpdate,
     PaginatedLeadResponse,
 )
 
 __all__ = [
     "LeadBase",
     "LeadCreate",
-    "LeadUpdate",
     "LeadResponse",
+    "LeadUpdate",
     "PaginatedLeadResponse",
 ]

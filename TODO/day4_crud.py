@@ -1,14 +1,13 @@
-from typing import List, Optional
-from fastapi import FastAPI, Depends, status, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
-from database import init_db, get_db, LeadDB
+from database import LeadDB, get_db, init_db
 
 app = FastAPI(
     title="Production CRUD Lead Service",
     description="Full CRUD endpoints with SQLAlchemy persistence and Pydantic validation.",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 init_db()
@@ -65,10 +64,10 @@ class LeadCreate(LeadBase):
 
 # Schema for updates where fields are optional
 class LeadUpdate(BaseModel):
-    full_name: Optional[str] = None
-    email: Optional[str] = None
-    budget_inr: Optional[int] = Field(default=None, gt=0)
-    phone: Optional[str] = None
+    full_name: str | None = None
+    email: str | None = None
+    budget_inr: int | None = Field(default=None, gt=0)
+    phone: str | None = None
 
     @field_validator("full_name", mode="before")
     @classmethod
@@ -117,6 +116,7 @@ class LeadResponse(LeadBase):
 # CRUD Endpoints
 # ---------------------------------------------------------------------------
 
+
 # 1. CREATE
 @app.post("/leads", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
 def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
@@ -128,31 +128,35 @@ def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
 
 
 # 2. READ ALL
-@app.get("/leads", response_model=List[LeadResponse], status_code=status.HTTP_200_OK)
+@app.get("/leads", response_model=list[LeadResponse], status_code=status.HTTP_200_OK)
 def list_leads(db: Session = Depends(get_db)):
     return db.query(LeadDB).all()
 
 
 # 3. READ ONE
-@app.get("/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK)
+@app.get(
+    "/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK
+)
 def get_lead(lead_id: int, db: Session = Depends(get_db)):
     lead = db.query(LeadDB).filter(LeadDB.id == lead_id).first()
     if not lead:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Lead with ID {lead_id} not found"
+            detail=f"Lead with ID {lead_id} not found",
         )
     return lead
 
 
 # 4. UPDATE (PATCH)
-@app.patch("/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK)
+@app.patch(
+    "/leads/{lead_id}", response_model=LeadResponse, status_code=status.HTTP_200_OK
+)
 def update_lead(lead_id: int, payload: LeadUpdate, db: Session = Depends(get_db)):
     lead = db.query(LeadDB).filter(LeadDB.id == lead_id).first()
     if not lead:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Lead with ID {lead_id} not found"
+            detail=f"Lead with ID {lead_id} not found",
         )
 
     # Exclude unset fields so only provided keys get updated
@@ -172,7 +176,7 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     if not lead:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Lead with ID {lead_id} not found"
+            detail=f"Lead with ID {lead_id} not found",
         )
 
     db.delete(lead)

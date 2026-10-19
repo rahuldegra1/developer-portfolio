@@ -1,12 +1,12 @@
 from fastapi import FastAPI, status
 from pydantic import BaseModel, Field, field_validator
-from typing import List
 
-app = FastAPI( 
+app = FastAPI(
     title="Lead Ingestion API",
     description="Mircoservice demonstring Pydantic v2 request validation in FastAPI. ",
-    version="1.0.0"
+    version="1.0.0",
 )
+
 
 class LeadRecord(BaseModel):
     full_name: str
@@ -60,16 +60,13 @@ async def health_check():
 @app.post("/leads", status_code=status.HTTP_201_CREATED)
 async def create_lead(lead: LeadRecord):
     # FastAPI automatically validates and cleans the payload before reaching this line
-    return {
-        "message": "Lead accepted and sanitized",
-        "data": lead.model_dump()
-    }
+    return {"message": "Lead accepted and sanitized", "data": lead.model_dump()}
 
 
 # 4. Batch Lead Ingestion
 @app.post("/leads/batch", status_code=status.HTTP_201_CREATED)
-async def create_leads_batch(leads: List[LeadRecord]):
+async def create_leads_batch(leads: list[LeadRecord]):
     return {
         "message": f"Successfully ingested {len(leads)} leads",
-        "data": [lead.model_dump() for lead in leads]
+        "data": [lead.model_dump() for lead in leads],
     }

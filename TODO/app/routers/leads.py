@@ -1,14 +1,13 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Query, status, HTTPException, Response
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.lead import LeadDB
 from app.schemas.lead import (
     LeadCreate,
-    LeadUpdate,
     LeadResponse,
+    LeadUpdate,
     PaginatedLeadResponse,
 )
 
@@ -28,9 +27,9 @@ def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
 def list_leads(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
-    min_budget: Optional[int] = Query(default=None, ge=0),
-    max_budget: Optional[int] = Query(default=None, ge=0),
-    search: Optional[str] = Query(default=None, min_length=2),
+    min_budget: int | None = Query(default=None, ge=0),
+    max_budget: int | None = Query(default=None, ge=0),
+    search: str | None = Query(default=None, min_length=2),
     db: Session = Depends(get_db),
 ):
     query = db.query(LeadDB)

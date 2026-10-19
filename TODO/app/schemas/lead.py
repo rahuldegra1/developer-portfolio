@@ -1,6 +1,6 @@
 import re
-from typing import List, Optional
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LeadBase(BaseModel):
@@ -59,11 +59,11 @@ class LeadCreate(LeadBase):
 
 
 class LeadUpdate(BaseModel):
-    full_name: Optional[str] = None
-    email: Optional[str] = None
-    budget_inr: Optional[int] = Field(default=None, gt=0)
-    phone: Optional[str] = None
-    status: Optional[str] = None
+    full_name: str | None = None
+    email: str | None = None
+    budget_inr: int | None = Field(default=None, gt=0)
+    phone: str | None = None
+    status: str | None = None
 
     @field_validator("full_name", mode="before")
     @classmethod
@@ -117,4 +117,4 @@ class PaginatedLeadResponse(BaseModel):
     total_count: int
     skip: int
     limit: int
-    data: List[LeadResponse]
+    data: list[LeadResponse]

@@ -1,12 +1,19 @@
+import os
 from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Resolves to C:\Code\TODO\leads.db
+# 1. Read from environment variable (Docker/Production) or fallback to SQLite (Local Dev)
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATABASE_URL = f"sqlite:///{BASE_DIR / 'leads.db'}"
+DEFAULT_SQLITE_URL = f"sqlite:///{BASE_DIR / 'leads.db'}"
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_SQLITE_URL)
+
+# 2. SQLite requires 'check_same_thread: False', PostgreSQL does not
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

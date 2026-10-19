@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.database import engine, Base
+
 from app.routers.leads import router as leads_router
 
 # Ensure tables are built
