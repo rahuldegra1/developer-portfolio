@@ -7,6 +7,7 @@ class LeadBase(BaseModel):
     email: str
     budget_inr: int = Field(gt=0, description="Budget in INR, must be positive")
     phone: str
+    status: str = "NEW"
 
     @field_validator("full_name", mode="before")
     @classmethod
@@ -59,6 +60,7 @@ class LeadUpdate(BaseModel):
     email: Optional[str] = None
     budget_inr: Optional[int] = Field(default=None, gt=0)
     phone: Optional[str] = None
+    status: Optional[str] = None
 
     @field_validator("full_name", mode="before")
     @classmethod

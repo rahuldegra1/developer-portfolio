@@ -10,3 +10,4 @@ class LeadDB(Base):
     email = Column(String, nullable=False)
     budget_inr = Column(Integer, nullable=False)
     phone = Column(String, nullable=False)
+    status = Column(String, nullable=False, server_default="NEW", default="NEW")
