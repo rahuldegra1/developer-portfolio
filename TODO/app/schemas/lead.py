@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class LeadBase(BaseModel):
@@ -38,6 +38,12 @@ class LeadBase(BaseModel):
     def clean_phone(cls, value: str) -> str:
         if isinstance(value, str):
             cleaned = value.replace("-", "").replace(" ", "").replace("+", "").strip()
+            # Normalize +91 / 91 Indian country code or leading 0
+            if cleaned.startswith("91") and len(cleaned) == 12:
+                cleaned = cleaned[2:]
+            elif cleaned.startswith("0") and len(cleaned) == 11:
+                cleaned = cleaned[1:]
+
             if not cleaned.isdigit() or len(cleaned) != 10:
                 raise ValueError("Phone number must contain exactly 10 digits")
             return cleaned
@@ -84,6 +90,11 @@ class LeadUpdate(BaseModel):
     def clean_phone(cls, value):
         if isinstance(value, str):
             cleaned = value.replace("-", "").replace(" ", "").replace("+", "").strip()
+            if cleaned.startswith("91") and len(cleaned) == 12:
+                cleaned = cleaned[2:]
+            elif cleaned.startswith("0") and len(cleaned) == 11:
+                cleaned = cleaned[1:]
+
             if not cleaned.isdigit() or len(cleaned) != 10:
                 raise ValueError("Phone number must contain exactly 10 digits")
             return cleaned
@@ -92,9 +103,7 @@ class LeadUpdate(BaseModel):
 
 class LeadResponse(LeadBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PaginatedLeadResponse(BaseModel):
