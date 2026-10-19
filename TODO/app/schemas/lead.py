@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
@@ -30,7 +31,10 @@ class LeadBase(BaseModel):
     @classmethod
     def clean_budget(cls, value):
         if isinstance(value, str):
-            cleaned = value.replace("₹", "").replace(",", "").strip()
+            # Extract only numeric digits, dropping currency symbols, commas, and encoding artifacts
+            cleaned = re.sub(r"[^\d]", "", value)
+            if not cleaned:
+                raise ValueError("Budget must contain valid numeric digits")
             return int(cleaned)
         return value
 
@@ -39,7 +43,6 @@ class LeadBase(BaseModel):
     def clean_phone(cls, value: str) -> str:
         if isinstance(value, str):
             cleaned = value.replace("-", "").replace(" ", "").replace("+", "").strip()
-            # Normalize +91 / 91 Indian country code or leading 0
             if cleaned.startswith("91") and len(cleaned) == 12:
                 cleaned = cleaned[2:]
             elif cleaned.startswith("0") and len(cleaned) == 11:
@@ -83,7 +86,9 @@ class LeadUpdate(BaseModel):
     @classmethod
     def clean_budget(cls, value):
         if isinstance(value, str):
-            cleaned = value.replace("₹", "").replace(",", "").strip()
+            cleaned = re.sub(r"[^\d]", "", value)
+            if not cleaned:
+                raise ValueError("Budget must contain valid numeric digits")
             return int(cleaned)
         return value
 
