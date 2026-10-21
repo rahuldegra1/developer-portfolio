@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
+from app.rate_limiter import limiter
 
 # In-memory SQLite database shared across the test thread
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -44,3 +45,13 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Reset the SlowAPI in-memory storage before each test to prevent cross-test rate limit contamination."""
+    try:
+        limiter._storage.reset()
+    except AttributeError:
+        pass
+    yield

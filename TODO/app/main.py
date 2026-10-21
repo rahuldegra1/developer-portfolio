@@ -4,12 +4,15 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
 from app.logging_config import logger
 from app.middleware import ObservabilityMiddleware
+from app.rate_limiter import limiter
 from app.routers import leads
 
 
@@ -28,6 +31,10 @@ app = FastAPI(
     description="Microservice for validating, storing, and filtering inbound sales leads.",
     lifespan=lifespan,
 )
+
+# Attach limiter to FastAPI application state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Prometheus metrics instrumentation
 Instrumentator().instrument(app).expose(

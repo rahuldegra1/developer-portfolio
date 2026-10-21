@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.lead import LeadDB
+from app.rate_limiter import limiter
 from app.schemas.lead import (
     LeadCreate,
     LeadResponse,
@@ -15,7 +16,12 @@ router = APIRouter(prefix="/leads", tags=["Leads"])
 
 
 @router.post("", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
-def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def create_lead(
+    request: Request,
+    payload: LeadCreate,
+    db: Session = Depends(get_db),
+):
     new_lead = LeadDB(**payload.model_dump())
     db.add(new_lead)
     db.commit()

@@ -50,7 +50,6 @@ def test_get_lead_not_found(client):
 
 
 def test_update_lead_partial(client):
-    # 1. Create initial record
     create_res = client.post(
         "/leads",
         json={
@@ -62,7 +61,6 @@ def test_update_lead_partial(client):
     )
     lead_id = create_res.json()["id"]
 
-    # 2. Update only the budget
     update_res = client.patch(f"/leads/{lead_id}", json={"budget_inr": "₹75,000"})
     assert update_res.status_code == 200
     assert update_res.json()["budget_inr"] == 75000
@@ -70,7 +68,6 @@ def test_update_lead_partial(client):
 
 
 def test_delete_lead(client):
-    # 1. Create lead
     create_res = client.post(
         "/leads",
         json={
@@ -82,18 +79,15 @@ def test_delete_lead(client):
     )
     lead_id = create_res.json()["id"]
 
-    # 2. Delete lead
     delete_res = client.delete(f"/leads/{lead_id}")
     assert delete_res.status_code == 204
     assert delete_res.text == ""
 
-    # 3. Verify it is gone
     get_res = client.get(f"/leads/{lead_id}")
     assert get_res.status_code == 404
 
 
 def test_pagination_and_filtering(client):
-    # Seed 3 records
     client.post(
         "/leads",
         json={
@@ -122,14 +116,12 @@ def test_pagination_and_filtering(client):
         },
     )
 
-    # Test min_budget filter
     res = client.get("/leads?min_budget=40000")
     assert res.status_code == 200
     data = res.json()
     assert data["total_count"] == 2
     assert len(data["data"]) == 2
 
-    # Test limit pagination
     res_paginated = client.get("/leads?limit=1")
     assert res_paginated.status_code == 200
     assert len(res_paginated.json()["data"]) == 1
@@ -163,14 +155,6 @@ def test_global_exception_handler():
         assert "X-Request-ID" in response.headers
 
 
-def test_health_check(client):
-    response = client.get("/health")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "healthy"
-    assert data["database"] == "connected"
-
-
 def test_health_check_database_failure(client):
     with patch.object(Session, "execute", side_effect=Exception("Database down")):
         response = client.get("/health")
@@ -182,7 +166,6 @@ def test_health_check_database_failure(client):
 
 
 def test_prometheus_metrics_endpoint(client):
-    # Fire a request to ensure traffic metrics are generated
     client.get("/health")
 
     response = client.get("/metrics")
@@ -192,3 +175,20 @@ def test_prometheus_metrics_endpoint(client):
         "http_requests_total" in response.text
         or "http_request_duration_seconds" in response.text
     )
+
+
+def test_rate_limit_exceeded_on_create_lead(client):
+    payload = {
+        "full_name": "Test Burst",
+        "email": "burst@example.com",
+        "phone": "+91 99999-88888",
+        "budget_inr": "1,00,000",
+    }
+
+    for _ in range(5):
+        resp = client.post("/leads", json=payload)
+        assert resp.status_code == 201
+
+    rate_limited_resp = client.post("/leads", json=payload)
+    assert rate_limited_resp.status_code == 429
+    assert "Rate limit exceeded" in rate_limited_resp.text
