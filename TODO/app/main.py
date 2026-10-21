@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -26,6 +27,11 @@ app = FastAPI(
     version="1.0.0",
     description="Microservice for validating, storing, and filtering inbound sales leads.",
     lifespan=lifespan,
+)
+
+# Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(
+    app, endpoint="/metrics", tags=["Observability"]
 )
 
 # Register custom observability middleware

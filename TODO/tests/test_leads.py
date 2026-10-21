@@ -9,7 +9,9 @@ from app.main import app
 def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "service": "lead-ingestion"}
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["database"] == "connected"
 
 
 def test_create_lead_success_and_sanitization(client):
@@ -177,3 +179,16 @@ def test_health_check_database_failure(client):
         assert data["status"] == "unhealthy"
         assert data["database"] == "disconnected"
         assert "error" in data
+
+
+def test_prometheus_metrics_endpoint(client):
+    # Fire a request to ensure traffic metrics are generated
+    client.get("/health")
+
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "text/plain" in response.headers.get("content-type", "")
+    assert (
+        "http_requests_total" in response.text
+        or "http_request_duration_seconds" in response.text
+    )
