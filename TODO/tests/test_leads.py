@@ -1,3 +1,10 @@
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
 def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
@@ -132,3 +139,22 @@ def test_observability_middleware_headers(client):
     assert "X-Request-ID" in response.headers
     assert "X-Process-Time" in response.headers
     assert response.headers["X-Process-Time"].endswith("ms")
+
+
+def test_global_exception_handler():
+    client_no_raise = TestClient(app, raise_server_exceptions=False)
+    with patch(
+        "app.routers.leads.LeadDB", side_effect=RuntimeError("Database pool crashed")
+    ):
+        payload = {
+            "full_name": "Test User",
+            "email": "test@example.com",
+            "budget_inr": 100000,
+            "phone": "9876543210",
+        }
+        response = client_no_raise.post("/leads", json=payload)
+        assert response.status_code == 500
+        data = response.json()
+        assert "Internal server error" in data["detail"]
+        assert "request_id" in data
+        assert "X-Request-ID" in response.headers
