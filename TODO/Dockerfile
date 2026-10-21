@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a self-contained virtualenv
+# Create isolated virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -28,22 +28,21 @@ WORKDIR /app
 RUN groupadd -g 10001 appgroup && \
     useradd -u 10000 -g appgroup -s /sbin/nologin -d /app appuser
 
-# Copy virtual environment from builder stage
+# Copy virtual environment
 COPY --from=builder /opt/venv /opt/venv
 
-# Ensure PATH prioritizes the virtual environment binaries (uvicorn, alembic)
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Copy project files and assign ownership to appuser
+# Copy project files with proper ownership
 COPY --chown=appuser:appgroup alembic.ini ./
 COPY --chown=appuser:appgroup alembic/ ./alembic/
 COPY --chown=appuser:appgroup app/ ./app/
 
-# Switch to non-root user
 USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations automatically, then hand off PID 1 to Uvicorn
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]

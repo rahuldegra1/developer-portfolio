@@ -80,3 +80,17 @@ jobs:
       - name: Teardown container stack
         if: always()
         run: docker compose down -v
+
+      - name: Start stack via Docker Compose
+        run: docker compose up -d --build
+
+      - name: Wait for database and apply migrations
+        run: |
+          echo "Waiting for services to boot..."
+          docker compose exec -T web alembic upgrade head
+
+      - name: Poll /health readiness probe
+        run: |
+          echo "Waiting for FastAPI health..."
+          timeout 60 bash -c 'until curl -sf http://localhost:8000/health | grep -q "\"status\":\"healthy\""; do sleep 2; done'
+          echo "FastAPI and PostgreSQL are healthy!"
