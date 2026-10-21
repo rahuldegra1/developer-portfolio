@@ -1,11 +1,12 @@
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.main import app
 
 
-def test_health_check(client):
+def test_health_check(client: TestClient):
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
@@ -13,7 +14,7 @@ def test_health_check(client):
     assert data["database"] == "connected"
 
 
-def test_create_lead_success_and_sanitization(client):
+def test_create_lead_success_and_sanitization(client: TestClient):
     payload = {
         "full_name": "  kavita sharma  ",
         "email": "KAVITA@VENTURES.CO",
@@ -25,13 +26,13 @@ def test_create_lead_success_and_sanitization(client):
 
     data = response.json()
     assert data["id"] == 1
-    assert data["full_name"] == "Kavita Sharma"  # Capitalized
-    assert data["email"] == "kavita@ventures.co"  # Lowercased
-    assert data["budget_inr"] == 125000  # Sanitized integer
-    assert data["phone"] == "9876543210"  # Normalized 10 digits
+    assert data["full_name"] == "Kavita Sharma"
+    assert data["email"] == "kavita@ventures.co"
+    assert data["budget_inr"] == 125000
+    assert data["phone"] == "9876543210"
 
 
-def test_create_lead_validation_failure(client):
+def test_create_lead_validation_failure(client: TestClient):
     invalid_payload = {
         "full_name": "Test User",
         "email": "invalid-email-no-at-symbol",
@@ -42,13 +43,13 @@ def test_create_lead_validation_failure(client):
     assert response.status_code == 422
 
 
-def test_get_lead_not_found(client):
+def test_get_lead_not_found(client: TestClient):
     response = client.get("/leads/999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Lead with ID 999 not found"
 
 
-def test_update_lead_partial(client):
+def test_update_lead_partial(client: TestClient):
     create_res = client.post(
         "/leads",
         json={
@@ -66,7 +67,7 @@ def test_update_lead_partial(client):
     assert update_res.json()["full_name"] == "Rohan Das"
 
 
-def test_delete_lead(client):
+def test_delete_lead(client: TestClient):
     create_res = client.post(
         "/leads",
         json={
@@ -86,7 +87,7 @@ def test_delete_lead(client):
     assert get_res.status_code == 404
 
 
-def test_pagination_and_filtering(client):
+def test_pagination_and_filtering(client: TestClient):
     client.post(
         "/leads",
         json={
@@ -127,7 +128,7 @@ def test_pagination_and_filtering(client):
     assert res_paginated.json()["data"][0]["budget_inr"] == 100000
 
 
-def test_observability_middleware_headers(client):
+def test_observability_middleware_headers(client: TestClient):
     response = client.get("/health")
     assert response.status_code == 200
     assert "X-Request-ID" in response.headers
@@ -135,26 +136,7 @@ def test_observability_middleware_headers(client):
     assert response.headers["X-Process-Time"].endswith("ms")
 
 
-def test_global_exception_handler():
-    client_no_raise = TestClient(app, raise_server_exceptions=False)
-    with patch(
-        "app.routers.leads.LeadDB", side_effect=RuntimeError("Database pool crashed")
-    ):
-        payload = {
-            "full_name": "Test User",
-            "email": "test@example.com",
-            "budget_inr": 100000,
-            "phone": "9876543210",
-        }
-        response = client_no_raise.post("/leads", json=payload)
-        assert response.status_code == 500
-        data = response.json()
-        assert "Internal server error" in data["detail"]
-        assert "request_id" in data
-        assert "X-Request-ID" in response.headers
-
-
-def test_health_check_database_failure(client):
+def test_health_check_database_failure(client: TestClient):
     with patch.object(Session, "execute", side_effect=Exception("Database down")):
         response = client.get("/health")
         assert response.status_code == 503
@@ -164,7 +146,7 @@ def test_health_check_database_failure(client):
         assert "error" in data
 
 
-def test_prometheus_metrics_endpoint(client):
+def test_prometheus_metrics_endpoint(client: TestClient):
     client.get("/health")
 
     response = client.get("/metrics")
@@ -176,7 +158,7 @@ def test_prometheus_metrics_endpoint(client):
     )
 
 
-def test_rate_limit_exceeded_on_create_lead(client):
+def test_rate_limit_exceeded_on_create_lead(client: TestClient):
     payload = {
         "full_name": "Test Burst",
         "email": "burst@example.com",
@@ -193,10 +175,10 @@ def test_rate_limit_exceeded_on_create_lead(client):
     assert "Rate limit exceeded" in rate_limited_resp.text
 
 
-def test_lead_routes_reject_missing_or_invalid_api_key():
-    unauthenticated_client = TestClient(app)
-
-    # 1. Missing header on protected route
+def test_lead_routes_reject_missing_or_invalid_api_key(
+    unauthenticated_client: TestClient,
+):
+    # Missing header on protected route
     res_missing = unauthenticated_client.post(
         "/leads",
         json={
@@ -209,7 +191,7 @@ def test_lead_routes_reject_missing_or_invalid_api_key():
     assert res_missing.status_code == 401
     assert res_missing.json()["detail"] == "Invalid or missing API Key"
 
-    # 2. Invalid API key token
+    # Invalid API key token
     res_invalid = unauthenticated_client.get(
         "/leads",
         headers={"X-API-Key": "invalid-dummy-key"},
@@ -218,26 +200,27 @@ def test_lead_routes_reject_missing_or_invalid_api_key():
     assert res_invalid.json()["detail"] == "Invalid or missing API Key"
 
 
-def test_public_routes_remain_accessible_without_auth():
-    unauthenticated_client = TestClient(app)
-
-    # Health probe must never require an API key
+def test_public_routes_remain_accessible_without_auth(
+    unauthenticated_client: TestClient,
+):
+    # Health probe
     res_health = unauthenticated_client.get("/health")
     assert res_health.status_code == 200
 
-    # Prometheus metrics scraper must remain accessible to monitoring agents
+    # Prometheus metrics scraper
     res_metrics = unauthenticated_client.get("/metrics")
     assert res_metrics.status_code == 200
 
 
-def test_global_exception_handler():
+def test_global_exception_handler(client: TestClient):
     client_no_raise = TestClient(
         app,
         headers={"X-API-Key": "prod-secret-lead-ingest-key-2026"},
         raise_server_exceptions=False,
     )
     with patch(
-        "app.routers.leads.LeadDB", side_effect=RuntimeError("Database pool crashed")
+        "app.routers.leads.LeadDB",
+        side_effect=RuntimeError("Database pool crashed"),
     ):
         payload = {
             "full_name": "Test User",
