@@ -1,8 +1,6 @@
 from unittest.mock import patch
-
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from starlette.testclient import TestClient
 
 from app.main import app
 
