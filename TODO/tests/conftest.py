@@ -10,7 +10,6 @@ from app.database import Base, get_db
 from app.main import app
 from app.rate_limiter import limiter
 
-# In-memory SQLite database shared across the test thread
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
@@ -45,7 +44,7 @@ def reset_rate_limiter():
 
 @pytest.fixture(scope="function")
 def client(db_session: Session) -> Generator[TestClient, None, None]:
-    """Overrides get_db and injects the default X-API-Key header for authenticated test requests."""
+    """Overrides get_db and injects the valid X-API-Key header for authenticated test requests."""
 
     def override_get_db() -> Generator[Session, None, None]:
         yield db_session
@@ -55,5 +54,18 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         app,
         headers={"X-API-Key": "prod-secret-lead-ingest-key-2026"},
     ) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def unauthenticated_client(db_session: Session) -> Generator[TestClient, None, None]:
+    """Overrides get_db with isolated SQLite without supplying any API key headers."""
+
+    def override_get_db() -> Generator[Session, None, None]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
