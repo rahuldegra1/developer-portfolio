@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from starlette.testclient import TestClient
 
 from app.main import app
 
@@ -192,3 +193,59 @@ def test_rate_limit_exceeded_on_create_lead(client):
     rate_limited_resp = client.post("/leads", json=payload)
     assert rate_limited_resp.status_code == 429
     assert "Rate limit exceeded" in rate_limited_resp.text
+
+
+def test_lead_routes_reject_missing_or_invalid_api_key():
+    unauthenticated_client = TestClient(app)
+
+    # 1. Missing header on protected route
+    res_missing = unauthenticated_client.post(
+        "/leads",
+        json={
+            "full_name": "Unauthorized User",
+            "email": "unauth@example.com",
+            "phone": "9876543210",
+            "budget_inr": "50000",
+        },
+    )
+    assert res_missing.status_code == 401
+    assert res_missing.json()["detail"] == "Invalid or missing API Key"
+
+    # 2. Invalid API key token
+    res_invalid = unauthenticated_client.get(
+        "/leads",
+        headers={"X-API-Key": "invalid-dummy-key"},
+    )
+    assert res_invalid.status_code == 401
+    assert res_invalid.json()["detail"] == "Invalid or missing API Key"
+
+
+def test_public_routes_remain_accessible_without_auth():
+    unauthenticated_client = TestClient(app)
+
+    # Health probe must never require an API key
+    res_health = unauthenticated_client.get("/health")
+    assert res_health.status_code == 200
+
+    # Prometheus metrics scraper must remain accessible to monitoring agents
+    res_metrics = unauthenticated_client.get("/metrics")
+    assert res_metrics.status_code == 200
+
+
+def test_global_exception_handler():
+    client_no_raise = TestClient(
+        app,
+        headers={"X-API-Key": "prod-secret-lead-ingest-key-2026"},
+        raise_server_exceptions=False,
+    )
+    with patch(
+        "app.routers.leads.LeadDB", side_effect=RuntimeError("Database pool crashed")
+    ):
+        payload = {
+            "full_name": "Test User",
+            "email": "test@example.com",
+            "budget_inr": 100000,
+            "phone": "9876543210",
+        }
+        response = client_no_raise.post("/leads", json=payload)
+        assert response.status_code == 500

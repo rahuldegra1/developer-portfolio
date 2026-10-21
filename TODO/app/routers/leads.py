@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.auth import verify_api_key
 from app.database import get_db
 from app.models.lead import LeadDB
 from app.rate_limiter import limiter
@@ -12,7 +13,11 @@ from app.schemas.lead import (
     PaginatedLeadResponse,
 )
 
-router = APIRouter(prefix="/leads", tags=["Leads"])
+router = APIRouter(
+    prefix="/leads",
+    tags=["Leads"],
+    dependencies=[Depends(verify_api_key)],
+)
 
 
 @router.post("", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
