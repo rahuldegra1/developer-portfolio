@@ -124,3 +124,11 @@ def test_pagination_and_filtering(client):
     assert res_paginated.status_code == 200
     assert len(res_paginated.json()["data"]) == 1
     assert res_paginated.json()["data"][0]["budget_inr"] == 100000
+
+
+def test_observability_middleware_headers(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert "X-Request-ID" in response.headers
+    assert "X-Process-Time" in response.headers
+    assert response.headers["X-Process-Time"].endswith("ms")
