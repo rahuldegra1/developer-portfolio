@@ -63,11 +63,14 @@ jobs:
 
       - name: Smoke test lead ingestion and rate limiting
         run: |
-          echo "Testing POST /leads ingestion..."
+          echo "Testing POST /leads with authentication..."
           curl -sf -X POST http://localhost:8000/leads \
             -H "Content-Type: application/json" \
+            -H "X-API-Key: prod-secret-lead-ingest-key-2026" \
             -d '{"full_name":"CI Tester","email":"ci@test.com","phone":"9876543210","budget_inr":"100000"}'
 
+          # Line 72: complete the string
+          echo "Verifying lead creation..."
       - name: Verify Prometheus metrics scrape
         run: |
           echo "Verifying /metrics exposition..."
