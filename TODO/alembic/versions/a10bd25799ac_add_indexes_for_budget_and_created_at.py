@@ -32,7 +32,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_leads_status_budget", table_name="leads", if_exists=True
-    )
+    op.drop_index("ix_leads_status_budget", table_name="leads", if_exists=True)
     op.drop_index("ix_leads_budget_inr", table_name="leads", if_exists=True)
