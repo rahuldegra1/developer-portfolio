@@ -1,6 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
+from app.database import get_db
 from app.logging_config import logger
 from app.middleware import ObservabilityMiddleware
 from app.routers import leads
@@ -43,5 +46,22 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 
 @app.get("/health", tags=["Health"])
-def health_check():
-    return {"status": "healthy", "service": "lead-ingestion"}
+def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "service": "lead-ingestion",
+            "database": "connected",
+        }
+    except Exception as exc:
+        logger.error(f"Readiness probe failed: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy",
+                "service": "lead-ingestion",
+                "database": "disconnected",
+                "error": "Database unreachable",
+            },
+        )

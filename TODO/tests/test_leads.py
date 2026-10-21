@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.main import app
 
@@ -158,3 +159,21 @@ def test_global_exception_handler():
         assert "Internal server error" in data["detail"]
         assert "request_id" in data
         assert "X-Request-ID" in response.headers
+
+
+def test_health_check(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["database"] == "connected"
+
+
+def test_health_check_database_failure(client):
+    with patch.object(Session, "execute", side_effect=Exception("Database down")):
+        response = client.get("/health")
+        assert response.status_code == 503
+        data = response.json()
+        assert data["status"] == "unhealthy"
+        assert data["database"] == "disconnected"
+        assert "error" in data
