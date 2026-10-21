@@ -1,33 +1,35 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: lead_postgres_db
     environment:
-      POSTGRES_USER: lead_user
-      POSTGRES_PASSWORD: lead_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
       POSTGRES_DB: leads_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lead_user -d leads_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d leads_db"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   web:
     build: .
-    container_name: lead_fastapi_app
-    command: >
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
-    environment:
-      DATABASE_URL: postgresql+psycopg://lead_user:lead_password@db:5432/leads_db
     ports:
       - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:postgrespassword@db:5432/leads_db
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 volumes:
   postgres_data:

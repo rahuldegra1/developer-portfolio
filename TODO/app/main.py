@@ -1,17 +1,31 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import engine, get_db
 from app.logging_config import logger
 from app.middleware import ObservabilityMiddleware
 from app.routers import leads
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    logger.info("Application starting up...")
+    yield
+    logger.info("Graceful shutdown: closing SQLAlchemy connection pools...")
+    engine.dispose()
+    logger.info("Database connections closed cleanly.")
+
 
 app = FastAPI(
     title="Lead Ingestion Service",
     version="1.0.0",
     description="Microservice for validating, storing, and filtering inbound sales leads.",
+    lifespan=lifespan,
 )
 
 # Register custom observability middleware
