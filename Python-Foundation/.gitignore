@@ -1,0 +1,17 @@
+# Ignore Python Virtual Environments and Cache
+env/
+__pycache__/
+
+# Ignore Data Science datasets
+*.csv
+Data_Science/datasets/
+.env
+test.py 
+numpy_test.py
+data_cleaning.py
+seaborn_test.py
+local_memory_db/
+.venv/
+Flask_blog/
+qwen2.5-coder-3b-instruct-q4_k_m.gguf
+Data_Science/expenses.db

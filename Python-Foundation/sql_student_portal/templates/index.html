@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Student Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container my-5">
+        <h1 class="mb-4 text-center">🎓 SQL Student Portal</h1>
+        
+        <div class="row">
+            <!-- Add Student Column -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow p-4">
+                    <h3>Add Student</h3>
+                    <form method="POST" action="/add_student">
+                        <div class="mb-3"><input type="text" name="name" class="form-control" placeholder="Full Name" required></div>
+                        <div class="mb-3"><input type="email" name="email" class="form-control" placeholder="Email Address" required></div>
+                        <div class="mb-3"><input type="text" name="major" class="form-control" placeholder="Major" required></div>
+                        <button type="submit" class="btn btn-primary w-100">Register Student</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Add Course Column -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow p-4">
+                    <h3>Add Course</h3>
+                    <form method="POST" action="/add_course">
+                        <div class="mb-3"><input type="text" name="title" class="form-control" placeholder="Course Title" required></div>
+                        <div class="mb-3"><input type="text" name="instructor" class="form-control" placeholder="Instructor Name" required></div>
+                        <button type="submit" class="btn btn-success w-100">Create Course</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enrollment Section -->
+        <div class="card shadow p-4 mb-4">
+            <h3>Enroll Student in Course</h3>
+            <form method="POST" action="/enroll" class="row g-3">
+                <div class="col-md-5">
+                    <select name="student_id" class="form-select" required>
+                        <option value="">Select Student...</option>
+                        {% for s in students %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <select name="course_id" class="form-select" required>
+                        <option value="">Select Course...</option>
+                        {% for c in courses %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-warning w-100">Enroll</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Directory Table -->
+        <div class="card shadow p-4">
+            <h3>Student Directory & Enrollments</h3>
+            <table class="table table-striped mt-3">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Major</th>
+                        <th>Enrolled Courses</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td>{{ s.name }}</td>
+                        <td>{{ s.email }}</td>
+                        <td>{{ s.major }}</td>
+                        <td>
+                            {% if s.courses %}
+                                {% for c in s.courses %}<span class="badge bg-secondary me-1">{{ c.title }}</span>{% endfor %}
+                            {% else %}
+                                <span class="text-muted">No courses yet</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
