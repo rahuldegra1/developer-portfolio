@@ -63,14 +63,69 @@ jobs:
 
       - name: Smoke test lead ingestion and rate limiting
         run: |
-          echo "Testing POST /leads with authentication..."
-          curl -sf -X POST http://localhost:8000/leads \
+          set -e
+
+          echo "=== 1. Testing valid lead ingestion (Expect 200/201) ==="
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/leads \
             -H "Content-Type: application/json" \
             -H "X-API-Key: prod-secret-lead-ingest-key-2026" \
-            -d '{"full_name":"CI Tester","email":"ci@test.com","phone":"9876543210","budget_inr":"100000"}'
+            -d '{"full_name":"CI Tester","email":"ci@test.com","phone":"9876543210","budget_inr":"100000"}')
+          echo "Status: $STATUS"
+          if [ "$STATUS" -ne 200 ] && [ "$STATUS" -ne 201 ]; then
+            echo "Expected 200/201 for valid lead, got $STATUS"
+            exit 1
+          fi
 
-          # Line 72: complete the string
-          echo "Verifying lead creation..."
+          echo "=== 2. Testing missing API key (Expect 401/403) ==="
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/leads \
+            -H "Content-Type: application/json" \
+            -d '{"full_name":"No Auth","email":"noauth@test.com","phone":"9876543210","budget_inr":"100000"}')
+          echo "Status: $STATUS"
+          if [ "$STATUS" -ne 401 ] && [ "$STATUS" -ne 403 ]; then
+            echo "Expected 401 or 403 for missing API key, got $STATUS"
+            exit 1
+          fi
+
+          echo "=== 3. Testing invalid API key (Expect 401/403) ==="
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/leads \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: invalid-tampered-token-xyz" \
+            -d '{"full_name":"Bad Auth","email":"badauth@test.com","phone":"9876543210","budget_inr":"100000"}')
+          echo "Status: $STATUS"
+          if [ "$STATUS" -ne 401 ] && [ "$STATUS" -ne 403 ]; then
+            echo "Expected 401 or 403 for invalid API key, got $STATUS"
+            exit 1
+          fi
+
+          echo "=== 4. Testing invalid payload schema (Expect 422 Unprocessable Entity) ==="
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/leads \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: prod-secret-lead-ingest-key-2026" \
+            -d '{"full_name":"","email":"not-a-valid-email","phone":"","budget_inr":"invalid_num"}')
+          echo "Status: $STATUS"
+          if [ "$STATUS" -ne 422 ]; then
+            echo "Expected 422 for invalid schema payload, got $STATUS"
+            exit 1
+          fi
+
+          echo "=== 5. Testing rate-limit trigger (Expect 429 Too Many Requests) ==="
+          RATE_LIMITED=false
+          for i in $(seq 1 25); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/leads \
+              -H "Content-Type: application/json" \
+              -H "X-API-Key: prod-secret-lead-ingest-key-2026" \
+              -d "{\"full_name\":\"Spam $i\",\"email\":\"spam$i@test.com\",\"phone\":\"9876543210\",\"budget_inr\":\"50000\"}")
+            if [ "$CODE" -eq 429 ]; then
+              echo "Rate limit tripped successfully on request #$i with HTTP 429"
+              RATE_LIMITED=true
+              break
+            fi
+          done
+
+          if [ "$RATE_LIMITED" = false ]; then
+            echo "Rate limit was never triggered after 25 rapid requests"
+            exit 1
+          fi
       - name: Verify Prometheus metrics scrape
         run: |
           echo "Verifying /metrics exposition..."

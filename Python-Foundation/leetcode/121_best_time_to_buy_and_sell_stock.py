@@ -1,4 +1,4 @@
-class Solution:
+class Solution(object):
     def maxProfit(self, prices):
 
         l, r = 0, 1
