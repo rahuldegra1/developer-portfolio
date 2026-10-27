@@ -1,0 +1,8 @@
+venv/
+.venv/
+data/
+data_fashion/
+data_cifar/
+__pycache__/
+*.png
+.git/

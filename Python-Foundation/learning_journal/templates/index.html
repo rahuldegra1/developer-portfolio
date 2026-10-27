@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Learning Journal & Blog</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container my-5" style="max-width: 800px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>📖 My Learning Journal</h1>
+            <a href="/new" class="btn btn-primary">+ New Post</a>
+        </div>
+        <div class="list-group shadow-sm">
+            {% for post in posts %}
+                <a href="/post/{{ post.slug }}" class="list-group-item list-group-item-action py-3">
+                    <h5 class="mb-1">{{ post.title }}</h5>
+                    <small class="text-muted">Click to read documentation</small>
+                </a>
+            {% else %}
+                <div class="card p-4 text-center text-muted">No journal entries yet. Create your first one!</div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

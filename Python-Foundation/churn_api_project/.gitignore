@@ -1,0 +1,11 @@
+venv/
+.venv/
+env/
+__pycache__/
+*.pkl
+.env
+.env.*
+!.env.example
+*.log
+*.sqlite3
+*.db

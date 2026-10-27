@@ -1,0 +1,24 @@
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Downloaded datasets, indexes, and local vector databases
+/data/
+/data_cifar/
+/data_fashion/
+/indexed_images/
+/chroma_visual_db/
+
+# Trained weights and exported model artifacts
+*.pt
+*.pth
+*.onnx
+*.onnx.data
